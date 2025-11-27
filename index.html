@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KasPro - Catatan Keuangan</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4e54c8">
+
+    <style>
+        :root {
+            --primary: #4e54c8;
+            --secondary: #8f94fb;
+            --bg: #1a1a2e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --danger: #ff4b5c;
+            --success: #2ecc71;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            background-image: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Landing Screen --- */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .logo-anim { font-size: 3rem; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        /* --- Main Layout --- */
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; display: none; opacity: 0; transition: opacity 1s; }
+        .show-content { display: block; opacity: 1; }
+
+        header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- Cards (Glassmorphism) --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .balance-card { text-align: center; background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .balance-title { font-size: 0.9rem; opacity: 0.8; }
+        .balance-amount { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
+        
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .income { color: var(--success); }
+        .expense { color: var(--danger); }
+
+        /* --- Chart Section --- */
+        .chart-container { position: relative; height: 250px; display: flex; justify-content: center; }
+
+        /* --- Transaction List --- */
+        .transaction-list { list-style: none; max-height: 400px; overflow-y: auto; }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        .transaction-item:hover { transform: scale(1.02); background: rgba(255, 255, 255, 0.1); }
+        .t-info h4 { font-size: 1rem; margin-bottom: 5px; }
+        .t-info small { opacity: 0.6; font-size: 0.8rem; }
+        .t-amount { font-weight: 600; }
+        .delete-btn {
+            background: none; border: none; color: var(--danger);
+            margin-left: 15px; cursor: pointer; font-size: 1.2rem;
+        }
+
+        /* --- Floating Action Button --- */
+        .fab {
+            position: fixed; bottom: 30px; right: 30px;
+            background: var(--success); width: 60px; height: 60px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 24px; color: white; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+            cursor: pointer; transition: transform 0.3s; border: none;
+        }
+        .fab:hover { transform: rotate(90deg) scale(1.1); }
+
+        /* --- Modal Form --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: end;
+            visibility: hidden; opacity: 0; transition: 0.3s; z-index: 1000;
+        }
+        .modal.active { visibility: visible; opacity: 1; }
+        .modal-content {
+            background: #252a40; width: 100%; max-width: 600px;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+            padding: 30px; animation: slideUp 0.3s forwards;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-control {
+            width: 100%; padding: 15px; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            color: white; font-size: 1rem; outline: none;
+        }
+        .form-control:focus { border-color: var(--secondary); }
+        .btn-submit {
+            width: 100%; padding: 15px; background: var(--primary);
+            color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;
+        }
+        .close-modal { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; color: white; cursor: pointer;}
+        
+        /* Custom Date Picker style fix for dark mode */
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="logo-anim"><i class="fas fa-wallet"></i></div>
+        <h1 style="margin-top: 20px;">KasPro</h1>
+        <p>Kelola Keuangan Harianmu</p>
+    </div>
+
+    <div class="container" id="main-app">
+        <header>
+            <div>
+                <h2>Halo, Bos!</h2>
+                <small>Ayo cek keuanganmu hari ini.</small>
+            </div>
+            <div id="connection-status"><i class="fas fa-wifi"></i></div>
+        </header>
+
+        <div class="card balance-card">
+            <div class="balance-title">Saldo Total</div>
+            <div class="balance-amount" id="total-balance">Rp 0</div>
+            <div class="summary-grid">
+                <div>
+                    <small>Pemasukan</small>
+                    <div class="income" id="total-income">+ Rp 0</div>
+                </div>
+                <div>
+                    <small>Pengeluaran</small>
+                    <div class="expense" id="total-expense">- Rp 0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Analitik Pengeluaran</h3>
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Riwayat Transaksi</h3>
+            <ul class="transaction-list" id="transaction-list">
+                </ul>
+        </div>
+    </div>
+
+    <button class="fab" onclick="toggleModal(true)"><i class="fas fa-plus"></i></button>
+
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal(false)">&times;</span>
+            <h3 style="margin-bottom: 20px;">Tambah Transaksi</h3>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <input type="text" id="desc" class="form-control" placeholder="Keterangan (Cth: Makan Siang)" required>
+                </div>
+                <div class="form-group">
+                    <input type="number" id="amount" class="form-control" placeholder="Nominal (Rp)" required>
+                </div>
+                <div class="form-group">
+                    <select id="type" class="form-control">
+                        <option value="expense">Pengeluaran (-)</option>
+                        <option value="income">Pemasukan (+)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Tanggal Transaksi</label>
+                    <input type="date" id="date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-submit">Simpan Transaksi</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        // 5. Data disimpan di Local Storage Device
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        // --- UI References ---
+        const balanceEl = document.getElementById('total-balance');
+        const incomeEl = document.getElementById('total-income');
+        const expenseEl = document.getElementById('total-expense');
+        const listEl = document.getElementById('transaction-list');
+        const form = document.getElementById('transaction-form');
+        const dateInput = document.getElementById('date');
+        
+        let myChart;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Splash Screen Timer
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.querySelector('.container').classList.add('show-content');
+                }, 500);
+            }, 2000);
+
+            // Set default date to today
+            dateInput.valueAsDate = new Date();
+
+            updateUI();
+            initPWA();
+        });
+
+        // --- Core Functions ---
+
+        function updateUI() {
+            updateValues();
+            renderList();
+            renderChart();
+        }
+
+        function formatRupiah(num) {
+            return 'Rp ' + num.toFixed(0).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        }
+
+        // 1. Penghitung Pemasukan & Pengeluaran
+        function updateValues() {
+            const amounts = transactions.map(t => t.type === 'income' ? t.amount : -t.amount);
+            const total = amounts.reduce((acc, item) => acc + item, 0);
+            const income = transactions
+                .filter(t => t.type === 'income')
+                .reduce((acc, t) => acc + t.amount, 0);
+            const expense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((acc, t) => acc + t.amount, 0);
+
+            balanceEl.innerText = formatRupiah(total);
+            incomeEl.innerText = `+ ${formatRupiah(income)}`;
+            expenseEl.innerText = `- ${formatRupiah(expense)}`;
+        }
+
+        function renderList() {
+            listEl.innerHTML = '';
+            // Sort by date (newest first)
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            transactions.forEach(transaction => {
+                const sign = transaction.type === 'income' ? '+' : '-';
+                const colorClass = transaction.type === 'income' ? 'income' : 'expense';
+                
+                const item = document.createElement('li');
+                item.classList.add('transaction-item');
+                item.innerHTML = `
+                    <div class="t-info">
+                        <h4>${transaction.desc}</h4>
+                        <small>${new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</small>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <span class="t-amount ${colorClass}">${sign}${formatRupiah(transaction.amount)}</span>
+                        <button class="delete-btn" onclick="removeTransaction(${transaction.id})">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        // 2. Analitik Pie Chart
+        function renderChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            // Group expenses by description (simplified grouping)
+            const expenseTrans = transactions.filter(t => t.type === 'expense');
+            const dataMap = {};
+            
+            expenseTrans.forEach(t => {
+                if(dataMap[t.desc]) dataMap[t.desc] += t.amount;
+                else dataMap[t.desc] = t.amount;
+            });
+
+            const labels = Object.keys(dataMap);
+            const data = Object.values(dataMap);
+            
+            // Destroy old chart if exists
+            if(myChart) myChart.destroy();
+
+            // Handle empty data
+            if(data.length === 0) {
+                // Tampilkan chart kosong atau placeholder
+                return; 
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#ff4b5c', '#f9ca24', '#6c5ce7', '#00d2d3', '#ff9f43', '#54a0ff'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: 'white' } }
+                    }
+                }
+            });
+        }
+
+        // --- Event Handlers ---
+
+        function toggleModal(show) {
+            const modal = document.getElementById('addModal');
+            if(show) modal.classList.add('active');
+            else modal.classList.remove('active');
+        }
+
+        // 7. Menambah Transaksi dengan Tanggal Custom
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const desc = document.getElementById('desc').value;
+            const amount = +document.getElementById('amount').value;
+            const type = document.getElementById('type').value;
+            const date = document.getElementById('date').value;
+
+            const newTransaction = {
+                id: Math.floor(Math.random() * 100000000),
+                desc,
+                amount,
+                type,
+                date
+            };
+
+            transactions.push(newTransaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            
+            updateUI();
+            form.reset();
+            dateInput.valueAsDate = new Date(); // Reset date to today
+            toggleModal(false);
+        });
+
+        // 6. Menghapus Transaksi
+        window.removeTransaction = function(id) {
+            if(confirm('Hapus transaksi ini?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem('transactions', JSON.stringify(transactions));
+                updateUI();
+            }
+        };
+
+        // --- PWA / Offline Capability Setup ---
+        function initPWA() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('SW Registered!', reg))
+                        .catch(err => console.log('SW Failed', err));
+                });
+            }
+        }
+    </script>
+</body>
+</html>
