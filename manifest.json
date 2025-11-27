@@ -1,0 +1,21 @@
+{
+    "name": "KasPro Harian",
+    "short_name": "KasPro",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#4e54c8",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}
