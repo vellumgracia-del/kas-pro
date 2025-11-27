@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KasPro - Catatan Keuangan</title>
+    <!-- Chart.js untuk Grafik -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
+    <!-- Link Manifest untuk PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4e54c8">
 
@@ -20,6 +24,7 @@
             --text: #ffffff;
             --danger: #ff4b5c;
             --success: #2ecc71;
+            --warning: #f1c40f;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -30,6 +35,7 @@
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
+            padding-bottom: 80px; /* Space for FAB */
         }
 
         /* --- Landing Screen --- */
@@ -73,9 +79,16 @@
         .expense { color: var(--danger); }
 
         /* --- Chart Section --- */
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        
         .chart-container { position: relative; height: 250px; display: flex; justify-content: center; }
+        .empty-chart {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; opacity: 0.5; font-size: 0.9rem; width: 100%;
+        }
 
         /* --- Transaction List --- */
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .transaction-list { list-style: none; max-height: 400px; overflow-y: auto; }
         .transaction-item {
             display: flex;
@@ -86,23 +99,29 @@
             border-radius: 15px;
             margin-bottom: 10px;
             transition: transform 0.2s;
+            border-left: 5px solid transparent;
         }
+        .transaction-item.t-inc { border-left-color: var(--success); }
+        .transaction-item.t-exp { border-left-color: var(--danger); }
+
         .transaction-item:hover { transform: scale(1.02); background: rgba(255, 255, 255, 0.1); }
         .t-info h4 { font-size: 1rem; margin-bottom: 5px; }
-        .t-info small { opacity: 0.6; font-size: 0.8rem; }
+        .t-info small { opacity: 0.6; font-size: 0.75rem; display: block;}
         .t-amount { font-weight: 600; }
         .delete-btn {
-            background: none; border: none; color: var(--danger);
-            margin-left: 15px; cursor: pointer; font-size: 1.2rem;
+            background: none; border: none; color: #ff4757; opacity: 0.7;
+            margin-left: 15px; cursor: pointer; font-size: 1rem; padding: 5px;
         }
+        .delete-btn:hover { opacity: 1; transform: scale(1.1); }
 
         /* --- Floating Action Button --- */
         .fab {
             position: fixed; bottom: 30px; right: 30px;
-            background: var(--success); width: 60px; height: 60px;
+            background: linear-gradient(to bottom right, #2ecc71, #27ae60);
+            width: 60px; height: 60px;
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
             font-size: 24px; color: white; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
-            cursor: pointer; transition: transform 0.3s; border: none;
+            cursor: pointer; transition: transform 0.3s; border: none; z-index: 100;
         }
         .fab:hover { transform: rotate(90deg) scale(1.1); }
 
@@ -117,6 +136,7 @@
             background: #252a40; width: 100%; max-width: 600px;
             border-top-left-radius: 25px; border-top-right-radius: 25px;
             padding: 30px; animation: slideUp 0.3s forwards;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
@@ -126,75 +146,94 @@
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
             color: white; font-size: 1rem; outline: none;
         }
-        .form-control:focus { border-color: var(--secondary); }
+        .form-control:focus { border-color: var(--secondary); background: rgba(255,255,255,0.1); }
+        select.form-control option { background: #1a1a2e; color: white; }
+        
         .btn-submit {
             width: 100%; padding: 15px; background: var(--primary);
             color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
         }
         .close-modal { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; color: white; cursor: pointer;}
         
         /* Custom Date Picker style fix for dark mode */
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
 </head>
 <body>
 
+    <!-- Landing Screen -->
     <div id="splash-screen">
         <div class="logo-anim"><i class="fas fa-wallet"></i></div>
-        <h1 style="margin-top: 20px;">KasPro</h1>
-        <p>Kelola Keuangan Harianmu</p>
+        <h1 style="margin-top: 20px; font-weight: 700;">KasPro</h1>
+        <p style="opacity: 0.8;">Kelola Keuangan Harianmu</p>
     </div>
 
     <div class="container" id="main-app">
         <header>
             <div>
-                <h2>Halo, Bos!</h2>
-                <small>Ayo cek keuanganmu hari ini.</small>
+                <h2 style="font-weight: 600;">Halo, Bos!</h2>
+                <small style="opacity: 0.7;">Ayo cek keuanganmu hari ini.</small>
             </div>
             <div id="connection-status"><i class="fas fa-wifi"></i></div>
         </header>
 
+        <!-- 1. Balance & Summary -->
         <div class="card balance-card">
             <div class="balance-title">Saldo Total</div>
             <div class="balance-amount" id="total-balance">Rp 0</div>
             <div class="summary-grid">
                 <div>
                     <small>Pemasukan</small>
-                    <div class="income" id="total-income">+ Rp 0</div>
+                    <div class="income" id="total-income" style="font-weight: 600; font-size: 1.1rem;">+ Rp 0</div>
                 </div>
                 <div>
                     <small>Pengeluaran</small>
-                    <div class="expense" id="total-expense">- Rp 0</div>
+                    <div class="expense" id="total-expense" style="font-weight: 600; font-size: 1.1rem;">- Rp 0</div>
                 </div>
             </div>
         </div>
 
+        <!-- 2. Analitik (Pie Chart) SINGLE VIEW -->
         <div class="card">
-            <h3>Analitik Pengeluaran</h3>
+            <div class="chart-header">
+                <h3>Perbandingan Arus Kas</h3>
+            </div>
             <div class="chart-container">
-                <canvas id="expenseChart"></canvas>
+                <canvas id="financeChart"></canvas>
+                <div id="empty-chart-msg" class="empty-chart" style="display: none;">
+                    <i class="fas fa-chart-pie" style="font-size: 2rem; margin-bottom: 10px;"></i><br>
+                    Belum ada data untuk ditampilkan
+                </div>
             </div>
         </div>
 
+        <!-- Transaction List -->
         <div class="card">
-            <h3>Riwayat Transaksi</h3>
+            <div class="list-header">
+                <h3>Riwayat</h3>
+                <small style="opacity: 0.6; cursor: pointer;" onclick="clearAllData()">Reset Data</small>
+            </div>
             <ul class="transaction-list" id="transaction-list">
-                </ul>
+                <!-- List items rendered here via JS -->
+            </ul>
         </div>
     </div>
 
+    <!-- Floating Action Button -->
     <button class="fab" onclick="toggleModal(true)"><i class="fas fa-plus"></i></button>
 
+    <!-- Form Modal (Custom Date) -->
     <div class="modal" id="addModal">
         <div class="modal-content">
             <span class="close-modal" onclick="toggleModal(false)">&times;</span>
             <h3 style="margin-bottom: 20px;">Tambah Transaksi</h3>
             <form id="transaction-form">
                 <div class="form-group">
-                    <input type="text" id="desc" class="form-control" placeholder="Keterangan (Cth: Makan Siang)" required>
+                    <input type="text" id="desc" class="form-control" placeholder="Keterangan (Cth: Gaji, Makan)" required autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <input type="number" id="amount" class="form-control" placeholder="Nominal (Rp)" required>
+                    <input type="number" id="amount" class="form-control" placeholder="Nominal (Rp)" required min="1">
                 </div>
                 <div class="form-group">
                     <select id="type" class="form-control">
@@ -203,7 +242,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label style="display:block; margin-bottom:5px; font-size:0.8rem;">Tanggal Transaksi</label>
+                    <label style="display:block; margin-bottom:5px; font-size:0.8rem; opacity: 0.7;">Tanggal Transaksi</label>
                     <input type="date" id="date" class="form-control" required>
                 </div>
                 <button type="submit" class="btn-submit">Simpan Transaksi</button>
@@ -213,8 +252,8 @@
 
     <script>
         // --- State Management ---
-        // 5. Data disimpan di Local Storage Device
         let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let myChart = null;
 
         // --- UI References ---
         const balanceEl = document.getElementById('total-balance');
@@ -223,29 +262,25 @@
         const listEl = document.getElementById('transaction-list');
         const form = document.getElementById('transaction-form');
         const dateInput = document.getElementById('date');
-        
-        let myChart;
+        const emptyChartMsg = document.getElementById('empty-chart-msg');
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Splash Screen Timer
+            // Splash Screen
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('splash-screen').style.display = 'none';
                     document.querySelector('.container').classList.add('show-content');
                 }, 500);
-            }, 2000);
+            }, 1500);
 
-            // Set default date to today
             dateInput.valueAsDate = new Date();
-
             updateUI();
             initPWA();
         });
 
         // --- Core Functions ---
-
         function updateUI() {
             updateValues();
             renderList();
@@ -256,16 +291,10 @@
             return 'Rp ' + num.toFixed(0).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
         }
 
-        // 1. Penghitung Pemasukan & Pengeluaran
         function updateValues() {
-            const amounts = transactions.map(t => t.type === 'income' ? t.amount : -t.amount);
-            const total = amounts.reduce((acc, item) => acc + item, 0);
-            const income = transactions
-                .filter(t => t.type === 'income')
-                .reduce((acc, t) => acc + t.amount, 0);
-            const expense = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((acc, t) => acc + t.amount, 0);
+            const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+            const total = income - expense;
 
             balanceEl.innerText = formatRupiah(total);
             incomeEl.innerText = `+ ${formatRupiah(income)}`;
@@ -274,22 +303,27 @@
 
         function renderList() {
             listEl.innerHTML = '';
-            // Sort by date (newest first)
             transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if(transactions.length === 0) {
+                listEl.innerHTML = '<li style="text-align:center; opacity:0.5; padding:20px;">Belum ada transaksi</li>';
+                return;
+            }
 
             transactions.forEach(transaction => {
                 const sign = transaction.type === 'income' ? '+' : '-';
                 const colorClass = transaction.type === 'income' ? 'income' : 'expense';
+                const borderClass = transaction.type === 'income' ? 't-inc' : 't-exp';
                 
                 const item = document.createElement('li');
-                item.classList.add('transaction-item');
+                item.classList.add('transaction-item', borderClass);
                 item.innerHTML = `
                     <div class="t-info">
                         <h4>${transaction.desc}</h4>
-                        <small>${new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</small>
+                        <small>${new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</small>
                     </div>
                     <div style="display:flex; align-items:center;">
-                        <span class="t-amount ${colorClass}">${sign}${formatRupiah(transaction.amount)}</span>
+                        <span class="t-amount ${colorClass}">${sign} ${formatRupiah(transaction.amount)}</span>
                         <button class="delete-btn" onclick="removeTransaction(${transaction.id})">
                             <i class="fas fa-trash-alt"></i>
                         </button>
@@ -299,62 +333,80 @@
             });
         }
 
-        // 2. Analitik Pie Chart
+        // --- Chart Logic: Comparison (Pemasukan vs Pengeluaran) ---
         function renderChart() {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
+            const ctx = document.getElementById('financeChart').getContext('2d');
             
-            // Group expenses by description (simplified grouping)
-            const expenseTrans = transactions.filter(t => t.type === 'expense');
-            const dataMap = {};
-            
-            expenseTrans.forEach(t => {
-                if(dataMap[t.desc]) dataMap[t.desc] += t.amount;
-                else dataMap[t.desc] = t.amount;
-            });
+            // Hitung Total Pemasukan dan Pengeluaran
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
-            const labels = Object.keys(dataMap);
-            const data = Object.values(dataMap);
-            
-            // Destroy old chart if exists
-            if(myChart) myChart.destroy();
+            if (myChart) myChart.destroy();
 
-            // Handle empty data
-            if(data.length === 0) {
-                // Tampilkan chart kosong atau placeholder
-                return; 
+            // Jika belum ada data sama sekali
+            if (totalIncome === 0 && totalExpense === 0) {
+                document.getElementById('financeChart').style.display = 'none';
+                emptyChartMsg.style.display = 'block';
+                return;
+            } else {
+                document.getElementById('financeChart').style.display = 'block';
+                emptyChartMsg.style.display = 'none';
             }
 
             myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels: ['Pemasukan', 'Pengeluaran'],
                     datasets: [{
-                        data: data,
-                        backgroundColor: [
-                            '#ff4b5c', '#f9ca24', '#6c5ce7', '#00d2d3', '#ff9f43', '#54a0ff'
-                        ],
-                        borderWidth: 0
+                        data: [totalIncome, totalExpense],
+                        backgroundColor: ['#2ecc71', '#ff4b5c'], // Hijau, Merah
+                        borderWidth: 0,
+                        hoverOffset: 10
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '60%', // Lubang tengah donat
                     plugins: {
-                        legend: { position: 'right', labels: { color: 'white' } }
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                color: 'white', 
+                                font: { size: 12 },
+                                padding: 20
+                            } 
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += formatRupiah(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
                     }
                 }
             });
         }
 
         // --- Event Handlers ---
-
         function toggleModal(show) {
             const modal = document.getElementById('addModal');
-            if(show) modal.classList.add('active');
-            else modal.classList.remove('active');
+            if(show) {
+                modal.classList.add('active');
+                document.getElementById('desc').focus();
+            } else {
+                modal.classList.remove('active');
+            }
         }
 
-        // 7. Menambah Transaksi dengan Tanggal Custom
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -364,7 +416,7 @@
             const date = document.getElementById('date').value;
 
             const newTransaction = {
-                id: Math.floor(Math.random() * 100000000),
+                id: Date.now(), // Unique ID based on timestamp
                 desc,
                 amount,
                 type,
@@ -376,11 +428,10 @@
             
             updateUI();
             form.reset();
-            dateInput.valueAsDate = new Date(); // Reset date to today
+            dateInput.valueAsDate = new Date();
             toggleModal(false);
         });
 
-        // 6. Menghapus Transaksi
         window.removeTransaction = function(id) {
             if(confirm('Hapus transaksi ini?')) {
                 transactions = transactions.filter(t => t.id !== id);
@@ -388,14 +439,22 @@
                 updateUI();
             }
         };
+        
+        window.clearAllData = function() {
+            if(confirm('PERINGATAN: Semua data akan dihapus permanen. Lanjutkan?')) {
+                localStorage.removeItem('transactions');
+                transactions = [];
+                updateUI();
+            }
+        }
 
-        // --- PWA / Offline Capability Setup ---
+        // --- PWA Setup ---
         function initPWA() {
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('./sw.js')
-                        .then(reg => console.log('SW Registered!', reg))
-                        .catch(err => console.log('SW Failed', err));
+                        .then(reg => console.log('SW Registered'))
+                        .catch(err => console.log('SW Fail', err));
                 });
             }
         }
