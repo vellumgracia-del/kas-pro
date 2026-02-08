@@ -7,22 +7,37 @@
     <title>Your Manage</title>
     <link rel="manifest" href="manifest.json">
     
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* --- THEME VARIABLES --- */
         :root {
-            --bg-body: #f8fafc; /* Slate 50 */
+            /* Light Mode (Default) */
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
-            --primary: #2563eb; /* Blue 600 */
-            --primary-soft: #dbeafe;
             --text-main: #1e293b;
-            --text-muted: #94a3b8;
-            --shadow-soft: 0 10px 30px -10px rgba(37, 99, 235, 0.2);
-            --glass: rgba(255, 255, 255, 0.9);
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --input-bg: #f1f5f9;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* Dark Mode Override */
+        body.dark-mode {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #60a5fa; /* Lighter blue for dark bg */
+            --nav-bg: rgba(30, 41, 59, 0.85);
+            --border-color: #334155;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --input-bg: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body {
             background-color: var(--bg-body);
@@ -31,49 +46,26 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* --- 1. ANIMATED LOGO & LANDING --- */
+        /* --- ANIMATED SPLASH --- */
         #landing-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 9999;
+            background: var(--bg-card); z-index: 9999;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            transition: opacity 0.6s ease;
+            transition: opacity 0.5s ease;
         }
-
         .logo-svg {
-            width: 120px; height: 120px;
-            fill: none; stroke: var(--primary);
-            stroke-width: 8; stroke-linecap: round; stroke-linejoin: round;
-            stroke-dasharray: 1000; stroke-dashoffset: 1000;
-            animation: drawLogo 2.5s ease-in-out forwards, floatLogo 3s ease-in-out infinite alternate 2.5s;
-            filter: drop-shadow(0 10px 15px rgba(37, 99, 235, 0.3));
+            width: 100px; height: 100px;
+            fill: none; stroke: var(--primary); stroke-width: 6;
+            stroke-dasharray: 600; stroke-dashoffset: 600;
+            animation: draw 2s ease-in-out forwards;
         }
+        @keyframes draw { to { stroke-dashoffset: 0; fill: rgba(37, 99, 235, 0.1); } }
 
-        @keyframes drawLogo { to { stroke-dashoffset: 0; fill: rgba(37, 99, 235, 0.1); } }
-        @keyframes floatLogo { from { transform: translateY(0); } to { transform: translateY(-10px); } }
-
-        .app-name-splash {
-            font-size: 2rem; font-weight: 800;
-            background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-top: 20px; opacity: 0;
-            animation: fadeInUp 0.8s ease-out 1s forwards;
-        }
-
-        .btn-start {
-            margin-top: 40px; padding: 15px 50px;
-            background: var(--primary); color: white;
-            border-radius: 50px; font-weight: 600; border: none;
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-            opacity: 0; animation: fadeInUp 0.8s ease-out 1.5s forwards;
-            cursor: pointer; transition: transform 0.2s;
-        }
-        .btn-start:active { transform: scale(0.95); }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- 2. HEADER & LAYOUT --- */
+        /* --- LAYOUT --- */
         #app-container {
             display: none; flex-direction: column;
             height: 100%; max-width: 500px; margin: 0 auto;
@@ -83,265 +75,346 @@
         header {
             padding: 20px 25px; display: flex;
             justify-content: space-between; align-items: center;
-            background: transparent;
         }
-        
-        .header-logo {
-            display: flex; align-items: center; gap: 10px;
-            font-weight: 800; font-size: 1.2rem; color: var(--primary);
-        }
+        .brand { font-weight: 800; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
 
-        /* --- 3. MAIN CONTENT --- */
-        main {
-            flex: 1; overflow-y: auto; padding: 20px;
-            padding-bottom: 120px; /* Space for floating nav */
+        /* VIEWS (Tab Content) */
+        .view-section {
+            flex: 1; overflow-y: auto; padding: 0 20px 100px 20px;
+            display: none; /* Hidden by default */
+            animation: fadeIn 0.3s ease-out;
         }
+        .view-section.active { display: block; }
 
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CARDS */
         .card {
-            background: var(--bg-card); border-radius: 24px;
-            padding: 25px; margin-bottom: 20px;
-            box-shadow: var(--shadow-soft); border: 1px solid rgba(255,255,255,0.5);
-            transition: transform 0.2s;
+            background: var(--bg-card); border-radius: 20px;
+            padding: 20px; margin-bottom: 15px;
+            box-shadow: var(--shadow); border: 1px solid var(--border-color);
         }
-        .card:active { transform: scale(0.99); }
 
-        .balance-title { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        .balance-value { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 5px 0 15px 0; }
-        
-        /* Asset List */
-        .asset-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px dashed #e2e8f0;
+        .balance-card {
+            background: linear-gradient(135deg, var(--primary), #1e40af);
+            color: white; border: none;
         }
-        .asset-row:last-child { border-bottom: none; }
-        
-        /* --- 4. FLOATING NAVIGATION (The "Exotic" Part) --- */
+
+        /* --- FLOATING NAV --- */
         .nav-container {
             position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%);
-            width: 90%; max-width: 400px;
-            height: 70px;
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            width: 85%; max-width: 380px; height: 65px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border-radius: 35px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             display: flex; justify-content: space-evenly; align-items: center;
-            border: 1px solid rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
             z-index: 100;
         }
-
         .nav-item {
-            position: relative;
-            width: 50px; height: 50px;
+            background: none; border: none; color: var(--text-muted);
+            width: 45px; height: 45px; border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
-            border-radius: 50%;
-            color: var(--text-muted);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: transparent; border: none; cursor: pointer;
+            transition: 0.3s;
         }
-
-        .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
-
         .nav-item.active {
-            color: white;
-            background: var(--primary);
-            transform: translateY(-20px); /* Pop up effect */
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+            color: white; background: var(--primary);
+            transform: translateY(-15px);
+            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
         }
-
-        .nav-item.active::after {
-            content: ''; position: absolute; bottom: -15px;
-            width: 6px; height: 6px; background: var(--primary);
-            border-radius: 50%;
-        }
-
-        /* Center FAB inside Nav */
-        .nav-fab {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border-radius: 50%;
-            color: white; font-size: 2rem;
+        .fab-main {
+            width: 55px; height: 55px; border-radius: 50%;
+            background: var(--text-main); color: var(--bg-card);
+            font-size: 2rem; border: 3px solid var(--bg-body);
+            transform: translateY(-25px);
             display: flex; justify-content: center; align-items: center;
-            transform: translateY(-30px); /* High rise */
-            box-shadow: 0 10px 25px rgba(30, 41, 59, 0.5);
-            border: 4px solid var(--bg-body); /* Cutout effect */
-            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2); cursor: pointer;
         }
-        .nav-fab:active { transform: translateY(-25px) scale(0.95); }
 
-        /* --- 5. MODAL --- */
-        .modal-overlay {
+        /* --- SETTINGS & HISTORY STYLES --- */
+        .settings-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
+        }
+        .toggle-switch {
+            position: relative; width: 50px; height: 26px;
+            background: #cbd5e1; border-radius: 20px; cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-switch::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 20px; height: 20px; background: white;
+            border-radius: 50%; transition: 0.3s;
+        }
+        body.dark-mode .toggle-switch { background: var(--primary); }
+        body.dark-mode .toggle-switch::after { transform: translateX(24px); }
+
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border-color);
+        }
+        .amount-inc { color: #10b981; font-weight: 600; }
+        .amount-exp { color: #ef4444; font-weight: 600; }
+        .date-small { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* FORM MODAL */
+        .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.1); backdrop-filter: blur(5px);
-            z-index: 200; display: none; opacity: 0;
-            transition: opacity 0.3s;
+            background: rgba(0,0,0,0.5); z-index: 200;
+            display: none; align-items: flex-end;
         }
-        .modal-card {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: white; border-radius: 30px 30px 0 0;
-            padding: 30px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .modal-content {
+            background: var(--bg-card); width: 100%; padding: 25px;
+            border-radius: 25px 25px 0 0; animation: slideUp 0.3s;
         }
-        .modal-open { display: block; opacity: 1; }
-        .modal-open .modal-card { transform: translateY(0); }
-
-        /* Form Elements */
         input, select {
-            width: 100%; padding: 15px; margin-bottom: 15px;
-            border: 2px solid #f1f5f9; border-radius: 15px;
-            font-size: 1rem; background: #f8fafc; outline: none;
-            transition: border-color 0.3s;
+            width: 100%; padding: 12px; margin-bottom: 10px;
+            background: var(--input-bg); border: none;
+            border-radius: 10px; color: var(--text-main);
         }
-        input:focus { border-color: var(--primary); background: white; }
-        
-        .btn-action {
-            width: 100%; padding: 16px; border-radius: 15px;
-            background: var(--primary); color: white;
-            font-weight: 700; border: none; cursor: pointer;
-        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
     </style>
 </head>
 <body>
 
-    <!-- ANIMATED SPLASH SCREEN -->
+    <!-- Splash Screen -->
     <div id="landing-screen">
-        <!-- SVG Animated Logo -->
         <svg class="logo-svg" viewBox="0 0 100 100">
-            <!-- Outline of a shield/wallet shape -->
-            <path d="M50 5 L90 25 V75 L50 95 L10 75 V25 Z" />
-            <!-- Inner Chart Line -->
-            <path d="M25 65 L40 50 L55 60 L75 35" style="stroke-width: 6;" />
+            <rect x="20" y="20" width="60" height="60" rx="15" />
+            <path d="M35 50 L45 60 L65 40" />
         </svg>
-        
-        <div class="app-name-splash">Your Manage</div>
-        <button class="btn-start" onclick="enterApp()">Mulai Kelola</button>
+        <h2 style="margin-top: 20px; color: var(--primary);">Your Manage</h2>
+        <p style="color: var(--text-muted); font-size: 0.8rem;">Personal Finance AI</p>
     </div>
 
-    <!-- MAIN APP -->
     <div id="app-container">
         <header>
-            <div class="header-logo">
-                <div style="width:10px; height:10px; background:var(--primary); border-radius:50%;"></div>
+            <div class="brand">
+                <div style="width:12px; height:12px; background:var(--primary); border-radius:50%;"></div>
                 Your Manage
             </div>
-            <div id="ai-indicator" style="font-size:0.8rem; color: var(--primary); font-weight:600;">AI Active ●</div>
+            <div style="font-size:0.8rem; font-weight:bold; color:var(--text-muted);" id="date-display"></div>
         </header>
 
-        <main>
-            <!-- Net Worth Card -->
-            <div class="card" style="background: linear-gradient(135deg, #2563eb, #1e40af); color: white; border:none;">
-                <div class="balance-title" style="color: rgba(255,255,255,0.7);">Total Kekayaan</div>
-                <div class="balance-value" style="color: white;" id="total-balance">Rp 0</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">
-                    Cashflow: <span id="cf-status">Stabil</span>
+        <!-- VIEW: HOME DASHBOARD -->
+        <main id="view-home" class="view-section active">
+            <div class="card balance-card">
+                <div style="opacity: 0.8; font-size: 0.9rem;">Total Saldo Bersih</div>
+                <h1 style="font-size: 2.2rem; margin: 10px 0;" id="net-worth">Rp 0</h1>
+                <div style="display: flex; gap: 15px;">
+                    <div>↓ Rp <span id="total-in">0</span></div>
+                    <div>↑ Rp <span id="total-out">0</span></div>
                 </div>
             </div>
 
-            <!-- Chart Card -->
             <div class="card">
-                <div style="margin-bottom:15px; font-weight:700; color:var(--text-main);">Analisa Pengeluaran</div>
-                <div style="position: relative; height: 180px;">
+                <h4 style="margin-bottom:15px; color:var(--text-main);">Analisa Grafik</h4>
+                <div style="height: 180px;">
                     <canvas id="mainChart"></canvas>
                 </div>
             </div>
 
-            <!-- Asset & AI Section -->
             <div class="card">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                    <span style="font-weight:700;">Aset Non-Likuid</span>
-                    <span style="color:var(--primary); font-size:0.8rem;" onclick="triggerAI()">✨ AI Valuasi</span>
+                <h4 style="margin-bottom:10px; color:var(--text-main);">Aset Non-Likuid</h4>
+                <div id="asset-preview-list">
+                    <small style="color:var(--text-muted);">Belum ada aset.</small>
                 </div>
-                <div id="asset-list">
-                    <p style="text-align:center; color:#cbd5e1; font-size:0.9rem;">Belum ada aset.</p>
-                </div>
-                <div id="ai-message" style="margin-top:15px; font-size:0.85rem; color: var(--text-muted); font-style: italic; display:none; background:#f1f5f9; padding:10px; border-radius:10px;"></div>
             </div>
         </main>
 
-        <!-- FLOATING EXOTIC NAVIGATION -->
+        <!-- VIEW: SETTINGS & HISTORY -->
+        <main id="view-settings" class="view-section">
+            <!-- Theme Settings -->
+            <div class="card">
+                <div class="settings-header" style="border:none; margin:0; padding:0;">
+                    <div>
+                        <h4 style="color:var(--text-main);">Mode Gelap</h4>
+                        <small style="color:var(--text-muted);">Ubah tampilan aplikasi</small>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleTheme()"></div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <h4 style="margin: 10px 0 10px 5px; color:var(--text-muted);">Riwayat Transaksi</h4>
+            <div class="card" style="padding-top: 0;">
+                <div id="history-list">
+                    <!-- History items injected here -->
+                    <div style="padding: 20px; text-align: center; color: var(--text-muted);">
+                        Belum ada riwayat.
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align:center; margin-top:30px;">
+                <button onclick="clearData()" style="background:transparent; color: #ef4444; border:1px solid #ef4444; padding: 8px 20px; border-radius: 20px; font-size: 0.8rem;">Reset Data</button>
+                <p style="font-size:0.7rem; color:var(--text-muted); margin-top:10px;">Versi 4.0 - Offline Ready</p>
+            </div>
+        </main>
+
+        <!-- Navigation -->
         <div class="nav-container">
-            <button class="nav-item active" onclick="switchTab(this, 'home')">
-                <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            <button class="nav-item active" onclick="switchView('home', this)">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
             </button>
-            
-            <button class="nav-fab" onclick="openModal()">+</button>
-            
-            <button class="nav-item" onclick="switchTab(this, 'settings')">
-                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            <div class="fab-main" onclick="openModal()">+</div>
+            <button class="nav-item" onclick="switchView('settings', this)">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM12 16a1 1 0 110-2 1 1 0 010 2zm1-5a1 1 0 11-2 0v-4a1 1 0 112 0v4z"></path></svg>
             </button>
         </div>
     </div>
 
-    <!-- MODAL FORM -->
-    <div class="modal-overlay" id="addModal">
-        <div class="modal-card">
-            <h3 style="margin-bottom:20px;">Tambah Catatan</h3>
-            <select id="inputType">
-                <option value="income">Pemasukan (+)</option>
+    <!-- Modal Input -->
+    <div class="modal" id="input-modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px; color:var(--text-main);">Tambah Baru</h3>
+            <select id="t-type">
                 <option value="expense">Pengeluaran (-)</option>
+                <option value="income">Pemasukan (+)</option>
                 <option value="asset">Aset (Emas/Tanah)</option>
             </select>
-            <input type="text" id="inputDesc" placeholder="Keterangan (cth: Gaji)">
-            <input type="number" id="inputValue" placeholder="Nominal (Rp)">
-            <button class="btn-action" onclick="saveData()">Simpan</button>
-            <button style="width:100%; padding:15px; margin-top:10px; background:transparent; border:none; color:#94a3b8;" onclick="closeModal()">Batal</button>
+            <input type="text" id="t-desc" placeholder="Keterangan">
+            <input type="number" id="t-val" placeholder="Nominal">
+            <button onclick="saveItem()" style="width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; margin-top:10px;">Simpan</button>
+            <button onclick="document.getElementById('input-modal').style.display='none'" style="width:100%; padding:15px; background:transparent; color:var(--text-muted); border:none; margin-top:5px;">Batal</button>
         </div>
     </div>
 
     <script>
         // --- DATA STATE ---
-        let data = {
+        let state = {
             transactions: JSON.parse(localStorage.getItem('ym_trans')) || [],
-            assets: JSON.parse(localStorage.getItem('ym_assets')) || []
+            assets: JSON.parse(localStorage.getItem('ym_assets')) || [],
+            theme: localStorage.getItem('ym_theme') || 'light'
         };
         let chartInstance = null;
 
-        // --- UI FUNCTIONS ---
-        function enterApp() {
-            document.getElementById('landing-screen').style.opacity = '0';
+        // --- INIT ---
+        window.addEventListener('load', () => {
+            // Apply theme logic
+            if(state.theme === 'dark') document.body.classList.add('dark-mode');
+            
+            // Show date
+            const d = new Date();
+            document.getElementById('date-display').innerText = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+
+            // Remove splash
             setTimeout(() => {
-                document.getElementById('landing-screen').style.display = 'none';
-                document.getElementById('app-container').style.display = 'flex';
-                updateUI();
-            }, 600);
+                document.getElementById('landing-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('landing-screen').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'flex';
+                    renderAll();
+                }, 500);
+            }, 1500);
+        });
+
+        // --- THEME LOGIC ---
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            state.theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('ym_theme', state.theme);
         }
 
+        // --- NAVIGATION LOGIC ---
+        function switchView(viewName, btnElement) {
+            // Update Active Tab
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+
+            // Switch Screen
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+
+            // Re-render if settings to show latest history
+            if(viewName === 'settings') renderHistory();
+        }
+
+        // --- CORE LOGIC ---
         function formatRp(num) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+            return new Intl.NumberFormat('id-ID').format(num);
         }
 
-        function updateUI() {
-            // Calculate Logic
-            let income = data.transactions.filter(t => t.type === 'income').reduce((a,b) => a + b.val, 0);
-            let expense = data.transactions.filter(t => t.type === 'expense').reduce((a,b) => a + b.val, 0);
-            let assetVal = data.assets.reduce((a,b) => a + b.val, 0);
-            
-            let total = (income - expense) + assetVal;
-            
-            // DOM Updates
-            document.getElementById('total-balance').innerText = formatRp(total);
-            document.getElementById('cf-status').innerText = income > expense ? 'Surplus 📈' : 'Defisit 📉';
+        function saveItem() {
+            const type = document.getElementById('t-type').value;
+            const desc = document.getElementById('t-desc').value;
+            const val = parseFloat(document.getElementById('t-val').value);
 
-            // Assets List
-            const list = document.getElementById('asset-list');
-            list.innerHTML = '';
-            if(data.assets.length === 0) list.innerHTML = '<p style="text-align:center; color:#cbd5e1; font-size:0.9rem;">Belum ada aset.</p>';
-            
-            data.assets.forEach(a => {
-                list.innerHTML += `
-                    <div class="asset-row">
-                        <div>
-                            <div style="font-weight:600;">${a.desc}</div>
-                            <div style="font-size:0.75rem; color:#94a3b8;">Non-Likuid</div>
-                        </div>
-                        <div style="font-weight:600; color:var(--primary);">${formatRp(a.val)}</div>
-                    </div>
-                `;
+            if(!desc || !val) return;
+
+            const item = { id: Date.now(), type, desc, val, date: new Date().toISOString() };
+
+            if(type === 'asset') {
+                state.assets.unshift(item); // Add to top
+                localStorage.setItem('ym_assets', JSON.stringify(state.assets));
+            } else {
+                state.transactions.unshift(item); // Add to top
+                localStorage.setItem('ym_trans', JSON.stringify(state.transactions));
+            }
+
+            document.getElementById('input-modal').style.display = 'none';
+            document.getElementById('t-desc').value = '';
+            document.getElementById('t-val').value = '';
+            renderAll();
+            renderHistory(); // Update history immediately if on settings page
+        }
+
+        function renderAll() {
+            let inc = 0, exp = 0;
+            state.transactions.forEach(t => {
+                if(t.type === 'income') inc += t.val;
+                else exp += t.val;
             });
+            
+            const assetVal = state.assets.reduce((sum, a) => sum + a.val, 0);
+            const netWorth = (inc - exp) + assetVal;
 
-            // Chart
-            renderChart(income, expense);
+            document.getElementById('net-worth').innerText = `Rp ${formatRp(netWorth)}`;
+            document.getElementById('total-in').innerText = formatRp(inc);
+            document.getElementById('total-out').innerText = formatRp(exp);
+
+            // Asset Preview (Home)
+            const assetList = document.getElementById('asset-preview-list');
+            if(state.assets.length > 0) {
+                assetList.innerHTML = state.assets.slice(0,3).map(a => 
+                    `<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border-color);">
+                        <span>${a.desc}</span> <b>Rp ${formatRp(a.val)}</b>
+                    </div>`
+                ).join('') + (state.assets.length > 3 ? '<small>...dan lainnya</small>' : '');
+            }
+
+            renderChart(inc, exp);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if(state.transactions.length === 0) {
+                list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Belum ada data.</div>';
+                return;
+            }
+
+            list.innerHTML = state.transactions.map(t => {
+                const isInc = t.type === 'income';
+                const colorClass = isInc ? 'amount-inc' : 'amount-exp';
+                const sign = isInc ? '+' : '-';
+                const dateObj = new Date(t.date);
+                const dateStr = `${dateObj.getDate()}/${dateObj.getMonth()+1} ${dateObj.getHours()}:${dateObj.getMinutes()}`;
+
+                return `
+                <div class="history-item">
+                    <div>
+                        <div style="font-weight:600; color:var(--text-main);">${t.desc}</div>
+                        <div class="date-small">${dateStr}</div>
+                    </div>
+                    <div class="${colorClass}">
+                        ${sign} Rp ${formatRp(t.val)}
+                    </div>
+                </div>
+                `;
+            }).join('');
         }
 
         function renderChart(inc, exp) {
@@ -349,6 +422,9 @@
             if(!ctx || typeof Chart === 'undefined') return;
 
             if(chartInstance) chartInstance.destroy();
+            
+            // Adjust chart color based on theme
+            const textColor = state.theme === 'dark' ? '#f1f5f9' : '#1e293b';
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -357,9 +433,9 @@
                     datasets: [{
                         label: 'Cashflow',
                         data: [inc, exp],
-                        backgroundColor: ['#3b82f6', '#ef4444'],
-                        borderRadius: 10,
-                        barThickness: 30
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderRadius: 8,
+                        barPercentage: 0.5
                     }]
                 },
                 options: {
@@ -367,79 +443,30 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { display: false, grid: {display: false} },
-                        x: { grid: {display: false} }
+                        y: { display:false, grid: {display:false} },
+                        x: { 
+                            ticks: { color: textColor },
+                            grid: { display: false } 
+                        }
                     }
                 }
             });
         }
 
-        // --- INTERACTION ---
-        function switchTab(btn, tab) {
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            // Logic switch tab content could go here
-        }
-
         function openModal() {
-            const m = document.getElementById('addModal');
-            m.classList.add('modal-open');
-            setTimeout(() => m.style.opacity = '1', 10);
+            document.getElementById('input-modal').style.display = 'flex';
         }
 
-        function closeModal() {
-            const m = document.getElementById('addModal');
-            m.style.opacity = '0';
-            setTimeout(() => m.classList.remove('modal-open'), 300);
-        }
-
-        function saveData() {
-            const type = document.getElementById('inputType').value;
-            const desc = document.getElementById('inputDesc').value;
-            const val = parseFloat(document.getElementById('inputValue').value);
-
-            if(!desc || !val) return;
-
-            if(type === 'asset') {
-                data.assets.push({id: Date.now(), desc, val});
-                localStorage.setItem('ym_assets', JSON.stringify(data.assets));
-            } else {
-                data.transactions.push({id: Date.now(), type, desc, val});
-                localStorage.setItem('ym_trans', JSON.stringify(data.transactions));
+        function clearData() {
+            if(confirm('Hapus semua data transaksi?')) {
+                localStorage.removeItem('ym_trans');
+                localStorage.removeItem('ym_assets');
+                location.reload();
             }
-
-            closeModal();
-            updateUI();
-            
-            // Clear
-            document.getElementById('inputDesc').value = '';
-            document.getElementById('inputValue').value = '';
         }
 
-        function triggerAI() {
-            const msg = document.getElementById('ai-message');
-            msg.style.display = 'block';
-            msg.innerText = "Mengkoneksikan ke server valuasi...";
-            
-            setTimeout(() => {
-                if(!navigator.onLine) {
-                    msg.innerText = "⚠️ Offline: Tidak bisa mengambil harga pasar terkini.";
-                } else {
-                    const totalAsset = data.assets.reduce((a,b)=>a+b.val, 0);
-                    if(totalAsset > 100000000) {
-                        msg.innerText = "🤖 AI Insight: Portofolio Anda kuat. Disarankan diversifikasi ke saham bluechip.";
-                    } else {
-                        msg.innerText = "🤖 AI Insight: Fokus tambah aset emas saat harga koreksi.";
-                    }
-                }
-            }, 1500);
-        }
-
-        // --- SERVICE WORKER ---
-        if('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js');
-        }
+        // SW
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     </script>
 </body>
 </html>
-      
