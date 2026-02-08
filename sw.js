@@ -1,4 +1,4 @@
-const CACHE_NAME = 'your-manage-v4';
+const CACHE_NAME = 'your-manage-v6';
 const ASSETS = [
     './index.html',
     './manifest.json'
