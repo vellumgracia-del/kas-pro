@@ -1,38 +1,33 @@
-const CACHE_NAME = 'kaspro-v1';
+const CACHE_NAME = 'your-manage-v3';
 const ASSETS = [
-    './',
     './index.html',
-    './manifest.json',
-    'https://cdn.jsdelivr.net/npm/chart.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
-    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap'
+    './manifest.json'
 ];
 
-// Install Service Worker
-self.addEventListener('install', (e) => {
-    e.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS);
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    );
+});
+
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            return response || fetch(event.request).catch(() => {
+                if (event.request.mode === 'navigate') {
+                    return caches.match('./index.html');
+                }
+            });
         })
     );
 });
 
-// Activate Service Worker
-self.addEventListener('activate', (e) => {
-    e.waitUntil(
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
         caches.keys().then((keys) => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-            );
-        })
-    );
-});
-
-// Fetch Event (Network First, then Cache)
-self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        fetch(e.request).catch(() => {
-            return caches.match(e.request);
+            return Promise.all(keys.map(key => {
+                if (key !== CACHE_NAME) return caches.delete(key);
+            }));
         })
     );
 });
