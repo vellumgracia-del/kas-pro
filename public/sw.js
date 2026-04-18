@@ -1,7 +1,7 @@
-const CACHE_NAME = 'your-manage-v7';
+const CACHE_NAME = 'your-manage-v8';
 const ASSETS = [
-    './index.html',
-    './manifest.json'
+    '/',
+    '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -15,7 +15,7 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((response) => {
             return response || fetch(event.request).catch(() => {
                 if (event.request.mode === 'navigate') {
-                    return caches.match('./index.html');
+                    return caches.match('/');
                 }
             });
         })
